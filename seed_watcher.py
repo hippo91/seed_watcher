@@ -120,25 +120,38 @@ def read_config() -> Optional[Mapping[str, Union[int, float]]]:
     return data
 
 
-def check_localisation_status(seed_box_addr: str, delay: int) -> Generator[bool, None, None]:
+def check_localisation_status(seed_box_addr: str, delay: int) -> Generator[bool, int, None]:
     """
     Check the localisation status every delay seconds
     """
+    start = int(time.time())
+    is_licit = check_licit_ip(seed_box_addr)
+    count = 0
     while True:
-        yield check_licit_ip(seed_box_addr)
-        time.sleep(delay)
+        current_time = yield is_licit
+        c_count = (current_time - start) // delay
+        if c_count != count:
+            count = c_count
+            is_licit = check_licit_ip(seed_box_addr)
 
 
-def get_download_speed(transmission_rpc_url: str, delay: int) -> Generator[str, None, None]:
+def get_download_speed(transmission_rpc_url: str, delay: int) -> Generator[str, int, None]:
     """
     Yields the download speed every delay seconds
     """
+    start = int(time.time())
+    stats = get_transmision_session_stats(transmission_rpc_url)
+    if not stats:
+        return None
+    count = 0
     while True:
-        stats =get_transmision_session_stats(transmission_rpc_url)
-        if not stats:
-            return None
-        yield stats['downloadSpeed']
-        time.sleep(delay)
+        current_time = yield stats['downloadSpeed']
+        c_count = (current_time - start) // delay
+        if c_count != count:
+            count = c_count
+            stats = get_transmision_session_stats(transmission_rpc_url)
+            if not stats:
+                return None
 
 
 def initialize_gpio(led: int) -> None:
@@ -163,8 +176,8 @@ def main():
     try:
         transmission_rpc_url = conf['transmission-rpc-url']
         seedbox_addr = conf['seedbox-local-addr']
-        ip_check_delay = conf['ip-check-delay'] * 60
-        download_speed_delay = conf['download-speed-delay'] * 60
+        ip_check_delay = conf['ip-check-delay']
+        download_speed_delay = conf['download-speed-delay']
     except KeyError:
         print("Error! The configuration file is not well formed!", file=sys.stderr)
         if 'transmission-rpc-url' not in conf.keys():
@@ -177,10 +190,18 @@ def main():
             print("\tThe parameter 'download-speed-delay' has not been found!", file=sys.stderr)
         sys.exit(2)
 
-        for status in check_localisation_status(seedbox_addr, ip_check_delay):
-            print(f"Status is {'ok' if status else 'ko'}")
-        for speed in get_download_speed(transmission_rpc_url, download_speed_delay):
-            print(f"Download speed is {speed}!")
+    time_delta = int(min((ip_check_delay, download_speed_delay)) / 2)
+    gen_loc_status = check_localisation_status(seedbox_addr, ip_check_delay)
+    next(gen_loc_status)
+    gen_speed_ret = get_download_speed(transmission_rpc_url, download_speed_delay)
+    next(gen_speed_ret)
+    while True:
+        current_time = int(time.time())
+        status = gen_loc_status.send(current_time)
+        speed = gen_speed_ret.send(current_time)
+        print(f"Status is {'Ok' if status else 'Ko'}")
+        print(f"Speed is {speed}")
+        time.sleep(time_delta)
 
 
 if __name__ == "__main__":
