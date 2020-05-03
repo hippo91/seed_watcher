@@ -16,15 +16,16 @@ except (ImportError, RuntimeError):
     pass
 
 
-def get_ip_localisation(seed_box_addr: str) -> Optional[str]:
+def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional[str]:
     """
     Return the public ip country name
 
+    :param seed_box_user: user name on the seed box
     :param seed_box_addr: address of the seed box on the internal network
     :return: the public ip country name
     """
     try:
-        res_b = check_output(f'ssh {seed_box_addr} curl -s https://ipvigilante.com', shell=True)
+        res_b = check_output(f'ssh {seed_box_user}@{seed_box_addr} curl -s https://ipvigilante.com', shell=True)
     except CalledProcessError:
         return None
     res_s = res_b.decode('utf-8')
@@ -34,14 +35,15 @@ def get_ip_localisation(seed_box_addr: str) -> Optional[str]:
     return res_d['data']['country_name']
 
 
-def check_licit_ip(seed_box_addr: str) -> bool:
+def check_licit_ip(seed_box_user:str, seed_box_addr: str) -> bool:
     """
     Return True if the public ip country name is licit
 
+    :param seed_box_user: user name on the seed box
     :param seed_box_addr: address of the seed box on the internal network
     :return: True if the public ip country name is licit (false otherwise)
     """
-    loc = get_ip_localisation(seed_box_addr)
+    loc = get_ip_localisation(seed_box_user, seed_box_addr)
     if not loc or loc not in ('Germany', 'Netherlands'):
         return False
     return True
@@ -120,19 +122,24 @@ def read_config() -> Optional[Mapping[str, Union[int, float]]]:
     return data
 
 
-def check_localisation_status(seed_box_addr: str, delay: int) -> Generator[bool, int, None]:
+def check_localisation_status(seed_box_user, seed_box_addr: str, delay: int) -> Generator[bool, int, None]:
     """
     Check the localisation status every delay seconds
+
+    :param seed_box_user: user name on the seed box
+    :param seed_box_addr: address of the seed box on the internal network
+    :param delay: refreshing delay
+    :return: True if the public ip country name is licit (false otherwise)
     """
     start = int(time.time())
-    is_licit = check_licit_ip(seed_box_addr)
+    is_licit = check_licit_ip(seed_box_user, seed_box_addr)
     count = 0
     while True:
         current_time = yield is_licit
         c_count = (current_time - start) // delay
         if c_count != count:
             count = c_count
-            is_licit = check_licit_ip(seed_box_addr)
+            is_licit = check_licit_ip(seed_box_user, seed_box_addr)
 
 
 def get_download_speed(transmission_rpc_url: str, delay: int) -> Generator[str, int, None]:
@@ -176,6 +183,7 @@ def main():
     try:
         transmission_rpc_url = conf['transmission-rpc-url']
         seedbox_addr = conf['seedbox-local-addr']
+        seedbox_user = conf['seedbox-user']
         ip_check_delay = conf['ip-check-delay']
         download_speed_delay = conf['download-speed-delay']
     except KeyError:
@@ -184,6 +192,8 @@ def main():
             print("\tThe parameter 'transmission-rpc-url' has not been found!", file=sys.stderr)
         if 'seedbox-local-addr' not in conf.keys():
             print("\tThe parameter 'seedbox-local-addr' has not been found!", file=sys.stderr)
+        if 'seedbox-user' not in conf.keys():
+            print("\tThe parameter 'seedbox-user' has not been found!", file=sys.stderr)
         if 'ip-check-delay' not in conf.keys():
             print("\tThe parameter 'ip-check-delay' has not been found!", file=sys.stderr)
         if 'download-speed-delay' not in conf.keys():
@@ -191,7 +201,7 @@ def main():
         sys.exit(2)
 
     time_delta = int(min((ip_check_delay, download_speed_delay)) / 2)
-    gen_loc_status = check_localisation_status(seedbox_addr, ip_check_delay)
+    gen_loc_status = check_localisation_status(seedbox_user, seedbox_addr, ip_check_delay)
     next(gen_loc_status)
     gen_speed_ret = get_download_speed(transmission_rpc_url, download_speed_delay)
     next(gen_speed_ret)
