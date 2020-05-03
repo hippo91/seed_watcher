@@ -1,0 +1,6 @@
+{
+    "seedbox-local-addr": "192.168.1.29",
+    "transmission-rpc-url": "http://192.168.1.29:9091/transmission/rpc/",
+    "ip-check-delay": 2,
+    "download-speed-delay": 1
+}

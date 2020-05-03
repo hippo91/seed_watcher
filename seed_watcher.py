@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+"""
+This program retrieves some informations on a leech box
+"""
+import json
+import requests
+from subprocess import check_output, CalledProcessError
+import time
+from typing import Mapping, Union, Optional, Any, Generator
+import sys
+
+try:
+    import RPi.GPIO as GPIO
+except (ImportError, RuntimeError):
+    # For the purpose of testing connection to seedbox we may not be on a raspberry
+    pass
+
+
+def get_ip_localisation(seed_box_addr: str) -> Optional[str]:
+    """
+    Return the public ip country name
+
+    :param seed_box_addr: address of the seed box on the internal network
+    :return: the public ip country name
+    """
+    try:
+        res_b = check_output(f'ssh {seed_box_addr} curl -s https://ipvigilante.com', shell=True)
+    except CalledProcessError:
+        return None
+    res_s = res_b.decode('utf-8')
+    res_d = json.loads(res_s)
+    if res_d['status'] != 'success':
+        return None
+    return res_d['data']['country_name']
+
+
+def check_licit_ip(seed_box_addr: str) -> bool:
+    """
+    Return True if the public ip country name is licit
+
+    :param seed_box_addr: address of the seed box on the internal network
+    :return: True if the public ip country name is licit (false otherwise)
+    """
+    loc = get_ip_localisation(seed_box_addr)
+    if not loc or loc not in ('Germany', 'Netherlands'):
+        return False
+    return True
+
+
+def get_transmission_session_id(url: str) -> Optional[str]:
+    """
+    Return the transmission session id
+
+    :param url: the transmission rpc url
+    """
+    response = requests.post(url, auth=('transmission', 'transmission'))
+    try:
+        return response.headers['X-Transmission-Session-Id']
+    except (AttributeError, KeyError):
+        return None
+
+
+def get_transmission_header(url: str) -> Optional[Mapping[str, str]]:
+    """
+    Return the transmission current session header
+
+    :param url: the transmission rpc url
+    """
+    session_id = get_transmission_session_id(url)
+    if not session_id:
+        print("No session id found!", file=sys.stderr)
+        return None
+    return {'x-transmission-session-id': session_id}
+
+
+def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
+    """
+    Return the transmission current session stats
+
+    :param url: the transmission rpc url
+    """
+    s_stats_request = {
+        "method": "session-stats",
+        "tag": 39693
+    }
+
+    header = get_transmission_header(url)
+
+    if not header:
+        print("No header found!", file=sys.stderr)
+        return None
+
+    response = requests.post(
+        url,
+        auth=('transmission', 'transmission'),
+        headers=get_transmission_header(url),
+        json=s_stats_request
+    )
+    
+    if response.status_code != 200:
+        print("Response on error!", file=sys.stderr)
+        return None
+
+    try:
+        return response.json()['arguments']
+    except (AttributeError, KeyError):
+        print("Unable to get arguments!", file=sys.stderr)
+        return None
+
+
+def read_config() -> Optional[Mapping[str, Union[int, float]]]:
+    """
+    Read the configuration file and return a dict
+    """
+    try:
+        with open("config.json", 'r') as fi:
+            data = json.load(fi)
+    except FileNotFoundError:
+        return None
+    return data
+
+
+def check_localisation_status(seed_box_addr: str, delay: int) -> Generator[bool, None, None]:
+    """
+    Check the localisation status every delay seconds
+    """
+    while True:
+        yield check_licit_ip(seed_box_addr)
+        time.sleep(delay)
+
+
+def get_download_speed(transmission_rpc_url: str, delay: int) -> Generator[str, None, None]:
+    """
+    Yields the download speed every delay seconds
+    """
+    while True:
+        stats =get_transmision_session_stats(transmission_rpc_url)
+        if not stats:
+            return None
+        yield stats['downloadSpeed']
+        time.sleep(delay)
+
+
+def initialize_gpio(led: int) -> None:
+    """
+    Initalizes the led
+
+    :param led: led index (BOARD mode)
+    """
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setwarnings(True)
+    GPIO.setup(led, GPIO.OUT)
+
+    if GPIO.input(led):
+        GPIO.output(led, GPIO.LOW)
+
+def main():
+    conf = read_config()
+    if not conf:
+        print("Error! The configuration file (config.json) has not been found!", file=sys.stderr)
+        sys.exit(1)
+    
+    try:
+        transmission_rpc_url = conf['transmission-rpc-url']
+        seedbox_addr = conf['seedbox-local-addr']
+        ip_check_delay = conf['ip-check-delay'] * 60
+        download_speed_delay = conf['download-speed-delay'] * 60
+    except KeyError:
+        print("Error! The configuration file is not well formed!", file=sys.stderr)
+        if 'transmission-rpc-url' not in conf.keys():
+            print("\tThe parameter 'transmission-rpc-url' has not been found!", file=sys.stderr)
+        if 'seedbox-local-addr' not in conf.keys():
+            print("\tThe parameter 'seedbox-local-addr' has not been found!", file=sys.stderr)
+        if 'ip-check-delay' not in conf.keys():
+            print("\tThe parameter 'ip-check-delay' has not been found!", file=sys.stderr)
+        if 'download-speed-delay' not in conf.keys():
+            print("\tThe parameter 'download-speed-delay' has not been found!", file=sys.stderr)
+        sys.exit(2)
+
+        for status in check_localisation_status(seedbox_addr, ip_check_delay):
+            print(f"Status is {'ok' if status else 'ko'}")
+        for speed in get_download_speed(transmission_rpc_url, download_speed_delay):
+            print(f"Download speed is {speed}!")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("User interruption!", file=sys.stderr)
+        sys.exit(0)
