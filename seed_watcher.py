@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This program retrieves some informations on a leech box
 """
@@ -11,9 +11,10 @@ import sys
 
 try:
     import RPi.GPIO as GPIO
+    ON_PI = True
 except (ImportError, RuntimeError):
     # For the purpose of testing connection to seedbox we may not be on a raspberry
-    pass
+    ON_PI = False
 
 
 def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional[str]:
@@ -186,6 +187,9 @@ def main():
         seedbox_user = conf['seedbox-user']
         ip_check_delay = conf['ip-check-delay']
         download_speed_delay = conf['download-speed-delay']
+        pin_loc_ok = conf['pin-localization-ok']
+        pin_loc_ko = conf['pin-localization-ko']
+        pin_download = conf['pin-download']
     except KeyError:
         print("Error! The configuration file is not well formed!", file=sys.stderr)
         if 'transmission-rpc-url' not in conf.keys():
@@ -198,6 +202,12 @@ def main():
             print("\tThe parameter 'ip-check-delay' has not been found!", file=sys.stderr)
         if 'download-speed-delay' not in conf.keys():
             print("\tThe parameter 'download-speed-delay' has not been found!", file=sys.stderr)
+        if 'pin-localization-ok' not in conf.keys():
+            print("\tThe parameter 'pin-localization-ok' has not been found!", file=sys.stderr)
+        if 'pin-localization-ko' not in conf.keys():
+            print("\tThe parameter 'pin-localization-ko' has not been found!", file=sys.stderr)
+        if 'pin-download' not in conf.keys():
+            print("\tThe parameter 'pin-download' has not been found!", file=sys.stderr)
         sys.exit(2)
 
     time_delta = int(min((ip_check_delay, download_speed_delay)) / 2)
@@ -205,13 +215,37 @@ def main():
     next(gen_loc_status)
     gen_speed_ret = get_download_speed(transmission_rpc_url, download_speed_delay)
     next(gen_speed_ret)
+
+    if ON_PI:
+        initialize_gpio(pin_loc_ok)
+        initialize_gpio(pin_loc_ko)
+
     while True:
         current_time = int(time.time())
         status = gen_loc_status.send(current_time)
         speed = gen_speed_ret.send(current_time)
-        print(f"Status is {'Ok' if status else 'Ko'}")
-        print(f"Speed is {speed}")
+        if status:
+            print("Status is Ok!")
+            if ON_PI:
+                GPIO.output(pin_loc_ok, GPIO.HIGH)
+                GPIO.output(pin_loc_ko, GPIO.LOW)
+        else:
+            print("Status is Ko!")
+            if ON_PI:
+                GPIO.output(pin_loc_ko, GPIO.HIGH)
+                GPIO.output(pin_loc_ok, GPIO.LOW)
+        if speed:
+            print(f"Speed is {speed}")
+            if ON_PI:
+                GPIO.output(pin_download, GPIO.HIGH)
+        else:
+            print("No download running!")
+            if ON_PI:
+                GPIO.output(pin_download, GPIO.LOW)
         time.sleep(time_delta)
+
+    if ON_PI:
+        GPIO.cleanup()
 
 
 if __name__ == "__main__":
@@ -220,3 +254,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("User interruption!", file=sys.stderr)
         sys.exit(0)
+    if ON_PI:
+        GPIO.cleanup()

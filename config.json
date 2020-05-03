@@ -3,5 +3,8 @@
     "seedbox-local-addr": "192.168.1.29",
     "transmission-rpc-url": "http://192.168.1.29:9091/transmission/rpc/",
     "ip-check-delay": 120,
-    "download-speed-delay": 10
+    "download-speed-delay": 10,
+    "pin-localization-ok": 22,
+    "pin-localization-ko": 8,
+    "pin-download": 7
 }
