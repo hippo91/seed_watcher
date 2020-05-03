@@ -175,6 +175,20 @@ def initialize_gpio(led: int) -> None:
     if GPIO.input(led):
         GPIO.output(led, GPIO.LOW)
 
+
+def blink_led(led: int) -> Generator[None, float, None]:
+    """
+    Makes the led blinks at given frequency
+
+    :param led: led index (BOARD mode)
+    """
+    while True:
+        GPIO.output(led, GPIO.LOW)
+        frequency = yield
+        time.sleep(1./frequency)
+        GPIO.output(led, GPIO.HIGH)
+
+
 def main():
     conf = read_config()
     if not conf:
@@ -216,43 +230,48 @@ def main():
     gen_speed_ret = get_download_speed(transmission_rpc_url, download_speed_delay)
     next(gen_speed_ret)
 
+    freq_base = 10
+    down_base = 1e+6
+
     if ON_PI:
         initialize_gpio(pin_loc_ok)
         initialize_gpio(pin_loc_ko)
+        initialize_gpio(pin_download)
 
-    while True:
-        current_time = int(time.time())
-        status = gen_loc_status.send(current_time)
-        speed = gen_speed_ret.send(current_time)
-        if status:
-            print("Status is Ok!")
-            if ON_PI:
-                GPIO.output(pin_loc_ok, GPIO.HIGH)
-                GPIO.output(pin_loc_ko, GPIO.LOW)
-        else:
-            print("Status is Ko!")
-            if ON_PI:
-                GPIO.output(pin_loc_ko, GPIO.HIGH)
-                GPIO.output(pin_loc_ok, GPIO.LOW)
-        if speed:
-            print(f"Speed is {speed}")
-            if ON_PI:
-                GPIO.output(pin_download, GPIO.HIGH)
-        else:
-            print("No download running!")
-            if ON_PI:
-                GPIO.output(pin_download, GPIO.LOW)
-        time.sleep(time_delta)
-
-    if ON_PI:
-        GPIO.cleanup()
+    try:
+      while True:
+          current_time = int(time.time())
+          status = gen_loc_status.send(current_time)
+          speed = gen_speed_ret.send(current_time)
+          if status:
+              print("Status is Ok!")
+              if ON_PI:
+                  GPIO.output(pin_loc_ok, GPIO.HIGH)
+                  GPIO.output(pin_loc_ko, GPIO.LOW)
+          else:
+              print("Status is Ko!")
+              if ON_PI:
+                  GPIO.output(pin_loc_ko, GPIO.HIGH)
+                  GPIO.output(pin_loc_ok, GPIO.LOW)
+          if speed:
+              print(f"Speed is {speed}")
+              if ON_PI:
+                  GPIO.output(pin_download, GPIO.HIGH)
+                  #blink_led(pin_download, speed / down_base * freq_base)
+          else:
+              print("No download running!")
+              if ON_PI:
+                  GPIO.output(pin_download, GPIO.LOW)
+          time.sleep(time_delta)
+    except KeyboardInterrupt:
+        print("User interruption!", file=sys.stderr)
+        if ON_PI:
+            GPIO.output(pin_loc_ok, GPIO.LOW)
+            GPIO.output(pin_loc_ko, GPIO.LOW)
+            GPIO.output(pin_download, GPIO.LOW)
+            GPIO.cleanup()
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("User interruption!", file=sys.stderr)
-        sys.exit(0)
-    if ON_PI:
-        GPIO.cleanup()
+    main()
