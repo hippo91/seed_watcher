@@ -27,8 +27,8 @@ async def blink_led(ledno):
 
     Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
     """
-    ontime = 3
-    offtime = 3
+    ontime = 0.5
+    offtime = 0.5
 
     GPIO.setup(ledno, GPIO.OUT)
 
