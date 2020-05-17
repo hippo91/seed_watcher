@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Mapping, Union, Optional
 
-from localization import check_localisation_status, BlinkingLocalization
+from localization import BlinkingLocalization
 from transmission import get_download_speed
 from raspberry import ON_PI, initialize_gpio, blink_led, cleanup
 
