@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Mapping, Union, Optional
 
-from localization import check_localisation_status
+from localization import check_localisation_status, BlinkingLocalization
 from transmission import get_download_speed
 from raspberry import ON_PI, initialize_gpio, blink_led, cleanup
 
@@ -68,8 +68,9 @@ def main():
 
 
     loop = asyncio.get_event_loop()
-    loc_status_task = loop.create_task(check_localisation_status(seedbox_user, seedbox_addr, ip_check_delay,
-                                       conf['pin-localization-ok'], conf['pin-localization-ko']))
+    loc_led_mng = BlinkingLocalization(conf['pin-localization-ok'], conf['pin-localization-ko']) 
+    loc_status_task = loop.create_task(loc_led_mng.check_localisation_status(seedbox_user, seedbox_addr, ip_check_delay))
+    loc_led_task = loop.create_task(loc_led_mng.blink_led())
     down_speed_task = loop.create_task(get_download_speed(transmission_rpc_url, download_speed_delay))
 
     if ON_PI:
@@ -81,7 +82,7 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        aggregate = asyncio.gather(loc_status_task, down_speed_task)
+        aggregate = asyncio.gather(loc_status_task, down_speed_task, loc_led_task)
         aggregate.cancel()
         loop.run_until_complete(aggregate)
 

@@ -5,6 +5,10 @@ import asyncio
 import json
 import time
 from typing import Optional, AsyncGenerator
+try:
+    import RPi.GPIO as GPIO
+except:
+    pass
 
 from raspberry import blink_led
 
@@ -52,20 +56,52 @@ async def check_licit_ip(seed_box_user:str, seed_box_addr: str) -> bool:
     return True
 
 
-async def check_localisation_status(seed_box_user, seed_box_addr: str, delay: int, pin_ok: int, pin_ko: int) -> bool:
-    """
-    Check the localisation status every delay seconds
+class BlinkingLocalization:
+    def __init__(self, led_ok: int, led_ko: int):
+        self._licit_ip = False
+        self._led_ok = led_ok
+        self._led_ko = led_ko
 
-    :param seed_box_user: user name on the seed box
-    :param seed_box_addr: address of the seed box on the internal network
-    :param delay: refreshing delay
-    :return: True if the public ip country name is licit (false otherwise)
-    """
-    while True:
-        is_licit = await check_licit_ip(seed_box_user, seed_box_addr)
-        if is_licit:
-            await blink_led(pin_ok)
-        else:
-            await blink_led(pin_ko)
-        print(f"Ip address is licit : {is_licit}")
-        await asyncio.sleep(delay)
+    async def check_localisation_status(self, seed_box_user, seed_box_addr: str, delay: int) -> bool:
+        """
+        Check the localisation status every delay seconds
+
+        :param seed_box_user: user name on the seed box
+        :param seed_box_addr: address of the seed box on the internal network
+        :param delay: refreshing delay
+        :return: True if the public ip country name is licit (false otherwise)
+        """
+        while True:
+            self._licit_ip = await check_licit_ip(seed_box_user, seed_box_addr)
+            print(f"Ip address is licit : {self._licit_ip}")
+            await asyncio.sleep(delay)
+
+    async def blink_led(self):
+        """
+        The led blinking coroutine for one led.
+
+        Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
+        """
+        ontime = 0.5
+        offtime = 0.5
+
+        GPIO.setup(self.led_ok, GPIO.OUT)
+        GPIO.setup(self.led_ko, GPIO.OUT)
+
+        try:
+            while True:
+                if self._licit_ip:
+                    GPIO.output(self._led_ok, GPIO.HIGH)
+                    await asyncio.sleep(ontime)
+
+                    GPIO.output(self._led_ok, GPIO.LOW)
+                    await asyncio.sleep(offtime)
+                else:
+                    GPIO.output(self._led_ko, GPIO.HIGH)
+                    await asyncio.sleep(ontime)
+
+                    GPIO.output(self._led_ko, GPIO.LOW)
+                    await asyncio.sleep(offtime)
+        except asyncio.CancelledError:
+            GPIO.setup(self.led_ok, GPIO.IN)
+            GPIO.setup(self.led_ko, GPIO.IN)
