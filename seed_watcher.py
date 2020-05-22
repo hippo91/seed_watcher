@@ -115,7 +115,7 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        aggregate = asyncio.gather(tasks)
+        aggregate = asyncio.gather(*tasks)
         aggregate.cancel()
         loop.run_until_complete(aggregate)
 
