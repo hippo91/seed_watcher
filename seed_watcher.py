@@ -11,9 +11,9 @@ import sys
 import time
 from typing import Mapping, Union, Optional, Generator
 
-from localization import BlinkingLocalization
-from transmission import BlinkingDownloadSpeed
-from raspberry import ON_PI, initialize_gpio, cleanup
+from seed_watcher.localization import BlinkingLocalization
+from seed_watcher.transmission import BlinkingDownloadSpeed
+from seed_watcher.raspberry import ON_PI, initialize_gpio, cleanup
 
 
 ConfigurationMapping = Mapping[str, Union[int, float]]
