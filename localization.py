@@ -80,6 +80,9 @@ class BlinkingLocalization:
         """
         The led blinking coroutine for one led.
 
+        If the ip address is licit makes the led_ok blink
+        otherwise makes the led_ko blink
+
         Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
         """
         ontime = 0.5
