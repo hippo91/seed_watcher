@@ -21,26 +21,5 @@ def initialize_gpio(led: int) -> None:
         GPIO.output(led, GPIO.LOW)
 
 
-async def blink_led(ledno):
-    """
-    The led blinking coroutine for one led.
-
-    Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
-    """
-    ontime = 0.5
-    offtime = 0.5
-
-    GPIO.setup(ledno, GPIO.OUT)
-
-    try:
-        while True:
-            GPIO.output(ledno, GPIO.HIGH)
-            await asyncio.sleep(ontime)
-
-            GPIO.output(ledno, GPIO.LOW)
-            await asyncio.sleep(offtime)
-    except asyncio.CancelledError:
-        GPIO.setup(ledno, GPIO.IN)
-
 def cleanup():
     GPIO.cleanup()

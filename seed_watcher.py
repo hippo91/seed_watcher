@@ -11,7 +11,7 @@ from typing import Mapping, Union, Optional
 
 from localization import BlinkingLocalization
 from transmission import get_download_speed
-from raspberry import ON_PI, initialize_gpio, blink_led, cleanup
+from raspberry import ON_PI, initialize_gpio, cleanup
 
 
 def do_sigterm():
