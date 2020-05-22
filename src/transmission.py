@@ -30,47 +30,31 @@ async def get_transmission_session_id(url: str) -> Optional[str]:
         return None
 
 
-async def get_transmission_header(session_id: Optional[str]
-                                  ) -> Optional[Mapping[str, str]]:
-    """
-    Return the transmission current session header
-
-    :param session_id: the id of the session
-    :return: the session id in a dict
-    """
-    if not session_id:
-        print("No session id found!", file=sys.stderr)
-        return None
-    return {'x-transmission-session-id': session_id}
-
-
 async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
     """
     Return the transmission current session stats
 
     :param url: the transmission rpc url
     """
+    session_id = await get_transmission_session_id(url)
+
+    if not session_id:
+        print("No session id found!", file=sys.stderr)
+        return None
+
+    session = requests.Session()
+    session.auth = requests.auth.HTTPBasicAuth('transmission', 'transmission')
+
+    header = {'x-transmission-session-id': session_id}
+
     s_stats_request = {
         "method": "session-stats",
         "tag": 39693
     }
 
-    session_id = await get_transmission_session_id(url)
-    header = await get_transmission_header(session_id)
-
-    if not header:
-        print("No header found!", file=sys.stderr)
-        return None
+    p_post = partial(session.post, json=s_stats_request, headers=header)
 
     loop = asyncio.get_running_loop()
-
-    session = requests.Session()
-    session.auth = requests.auth.HTTPBasicAuth('transmission', 'transmission')
-    session_id = await get_transmission_session_id(url)
-    headers = await get_transmission_header(session_id)
-
-    p_post = partial(session.post, json=s_stats_request, headers=headers)
-
     response = await loop.run_in_executor(None, p_post, url)
 
     if response.status_code != 200:
