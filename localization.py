@@ -88,8 +88,8 @@ class BlinkingLocalization:
         ontime = 0.5
         offtime = 0.5
 
-        GPIO.setup(self.led_ok, GPIO.OUT)
-        GPIO.setup(self.led_ko, GPIO.OUT)
+        GPIO.setup(self._led_ok, GPIO.OUT)
+        GPIO.setup(self._led_ko, GPIO.OUT)
 
         try:
             while True:
@@ -106,5 +106,5 @@ class BlinkingLocalization:
                     GPIO.output(self._led_ko, GPIO.LOW)
                     await asyncio.sleep(offtime)
         except asyncio.CancelledError:
-            GPIO.setup(self.led_ok, GPIO.IN)
-            GPIO.setup(self.led_ko, GPIO.IN)
+            GPIO.setup(self._led_ok, GPIO.IN)
+            GPIO.setup(self._led_ko, GPIO.IN)
