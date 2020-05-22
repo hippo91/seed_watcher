@@ -93,12 +93,13 @@ class BlinkingDownloadSpeed:
         while True:
             stats = await get_transmision_session_stats(transmission_rpc_url)
             if stats is None:
-                d_speed = 0.
-            try:
-                d_speed = stats['downloadSpeed']
-            except KeyError:
-                d_speed = 0.
-                pass
+                d_speed = 0
+            else:
+                try:
+                    d_speed = stats['downloadSpeed']
+                except KeyError:
+                    d_speed = 0
+                    pass
             print(f"Download speed is : {d_speed}")
             self.__download_speed = d_speed
             await asyncio.sleep(delay)
