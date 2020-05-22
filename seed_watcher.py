@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This program retrieves some informations on a leech box
+This program retrieves some informations on a seed box
 """
 import asyncio
 from contextlib import contextmanager
@@ -36,6 +36,9 @@ def read_config() -> Optional[ConfigurationMapping]:
 
 
 class ConfigurationReader:
+    """
+    This class ensures that the configuration has been read successfully
+    """
     def __init__(self, configuration: ConfigurationMapping):
         self.message = ""
         self.is_ok = True
