@@ -111,17 +111,18 @@ class BlinkingDownloadSpeed:
 
         Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
         """
-        ontime = 0.5
+        freq_min = 0.5  # Hz
+        freq_max = 12  # Hz
         d_speed_max = int(0.75e+06)
         
         GPIO.setup(self.__led, GPIO.OUT)
 
         try:
             while True:
+                freq = freq_min
                 if self.__download_speed:
-                    offtime = d_speed_max / self.__download_speed * ontime
-                else: 
-                    offtime = 100 * ontime
+                    freq += (freq_max - freq_min) / d_speed_max * self.__download_speed
+                ontime = offtime = 1. / freq
                 GPIO.output(self.__led, GPIO.HIGH)
                 await asyncio.sleep(ontime)
 
