@@ -3,15 +3,16 @@ This module holds functions that deal with ip localization of the seed box
 """
 import asyncio
 import json
-import time
-from typing import Optional, AsyncGenerator
+import sys
+from typing import Optional
 try:
     import RPi.GPIO as GPIO
-except:
+except ImportError:
     pass
 
 
-async def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional[str]:
+async def get_ip_localisation(seed_box_user: str,
+                              seed_box_addr: str) -> Optional[str]:
     """
     Return the public ip country name
 
@@ -19,7 +20,8 @@ async def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional
     :param seed_box_addr: address of the seed box on the internal network
     :return: the public ip country name
     """
-    cmd = f'ssh {seed_box_user}@{seed_box_addr} curl -s https://ipvigilante.com'
+    cmd = (f'ssh {seed_box_user}@{seed_box_addr} '
+           'curl -s https://ipvigilante.com')
     proc = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
@@ -29,7 +31,6 @@ async def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional
     stdout, stderr = await proc.communicate()
 
     if stdout:
-        res_s = stdout.decode()
         res_d = json.loads(stdout)
         if res_d['status'] != 'success':
             return None
@@ -40,7 +41,8 @@ async def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional
     return None
 
 
-async def check_licit_ip(seed_box_user:str, seed_box_addr: str) -> bool:
+async def check_licit_ip(seed_box_user: str,
+                         seed_box_addr: str) -> bool:
     """
     Return True if the public ip country name is licit
 
@@ -60,7 +62,10 @@ class BlinkingLocalization:
         self._led_ok = led_ok
         self._led_ko = led_ko
 
-    async def check_localisation_status(self, seed_box_user, seed_box_addr: str, delay: int) -> bool:
+    async def check_localisation_status(self,
+                                        seed_box_user: str,
+                                        seed_box_addr: str,
+                                        delay: int) -> bool:
         """
         Check the localisation status every delay seconds
 
@@ -78,10 +83,11 @@ class BlinkingLocalization:
         """
         The led blinking coroutine for one led.
 
-        If the ip address is licit lights on led_ok 
+        If the ip address is licit lights on led_ok
         otherwise makes the led_ko blink
 
-        Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
+        Inspired by :
+        https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
         """
         ontime = 0.5
         offtime = 0.5

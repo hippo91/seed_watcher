@@ -8,7 +8,6 @@ import json
 import os
 import signal
 import sys
-import time
 from typing import Mapping, Union, Optional, Generator
 
 from seed_watcher.localization import BlinkingLocalization
@@ -44,28 +43,32 @@ class ConfigurationReader:
 
     def get_safe(self, parameter: str) -> Optional[Union[int, float]]:
         """
-        Check if the parameter is in the configuration. If it is in then return the value. Else adds a message to the buffer
+        Check if the parameter is in the configuration.
+        If it is in then return the value. Else adds a message to the buffer
 
         :param parameter: parameter to check
         """
         try:
             return self.config[parameter]
         except KeyError:
-            self.message += f"The parameter '{parameter}' has not been found!" + os.linesep
+            self.message += f"The parameter '{parameter}' has not been found!"
+            self.message += os.linesep
             self.is_ok = False
             return None
 
 
 @contextmanager
-def configuration_reader(configuration: ConfigurationMapping) -> Generator[ConfigurationMapping, None, None]:
+def configuration_reader(configuration: ConfigurationMapping) -> Generator[
+        ConfigurationReader, None, None]:
     """
-    This context manager give access to an instance of ConfigurationReader class
-    that checks the configuration has been successfully read.
+    This context manager give access to an instance of ConfigurationReader
+    class that checks the configuration has been successfully read.
     """
     conf_state = ConfigurationReader(configuration)
     yield conf_state
     if not conf_state.is_ok:
-        print("Error! The configuration file is not well formed!", file=sys.stderr)
+        print("Error! The configuration file is not well formed!",
+              file=sys.stderr)
         print(conf_state.message, file=sys.stderr)
         sys.exit(2)
 
@@ -76,7 +79,9 @@ def main():
     """
     conf = read_config()
     if not conf:
-        print("Error! The configuration file (config.json) has not been found!", file=sys.stderr)
+        print("Error! "
+              "The configuration file (config.json) has not been found!",
+              file=sys.stderr)
         sys.exit(1)
 
     with configuration_reader(conf) as reader:
@@ -90,11 +95,13 @@ def main():
         pin_download = reader.get_safe('pin-download')
 
     loop = asyncio.get_event_loop()
-    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko) 
-    loc_status_task = loop.create_task(loc_led_mng.check_localisation_status(seedbox_user, seedbox_addr, ip_check_delay))
+    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko)
+    loc_status_task = loop.create_task(loc_led_mng.check_localisation_status(
+        seedbox_user, seedbox_addr, ip_check_delay))
     loc_led_task = loop.create_task(loc_led_mng.blink_led())
     down_speed_mng = BlinkingDownloadSpeed(pin_download)
-    down_speed_task = loop.create_task(down_speed_mng.get_download_speed(transmission_rpc_url, download_speed_delay))
+    down_speed_task = loop.create_task(down_speed_mng.get_download_speed(
+        transmission_rpc_url, download_speed_delay))
     down_speed_led_task = loop.create_task(down_speed_mng.blink_led())
 
     if ON_PI:
@@ -106,12 +113,14 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        aggregate = asyncio.gather(loc_status_task, down_speed_task, loc_led_task, down_speed_led_task)
+        aggregate = asyncio.gather(loc_status_task,
+                                   down_speed_task,
+                                   loc_led_task,
+                                   down_speed_led_task)
         aggregate.cancel()
         loop.run_until_complete(aggregate)
 
     loop.close()
-
 
     if ON_PI:
         cleanup()
