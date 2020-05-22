@@ -10,8 +10,6 @@ try:
 except:
     pass
 
-from raspberry import blink_led
-
 
 async def get_ip_localisation(seed_box_user:str, seed_box_addr: str) -> Optional[str]:
     """
