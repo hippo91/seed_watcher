@@ -12,9 +12,9 @@ except (ImportError, RuntimeError):
     pass
 
 
-async def get_transmission_session_id(url: str) -> Optional[str]:
+async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
     """
-    Return the transmission session id
+    Return the transmission current session stats
 
     :param url: the transmission rpc url
     """
@@ -25,25 +25,10 @@ async def get_transmission_session_id(url: str) -> Optional[str]:
 
     response = await loop.run_in_executor(None, session.post, url)
     try:
-        return response.headers['X-Transmission-Session-Id']
+        session_id = response.headers['X-Transmission-Session-Id']
     except (AttributeError, KeyError):
-        return None
-
-
-async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
-    """
-    Return the transmission current session stats
-
-    :param url: the transmission rpc url
-    """
-    session_id = await get_transmission_session_id(url)
-
-    if not session_id:
         print("No session id found!", file=sys.stderr)
         return None
-
-    session = requests.Session()
-    session.auth = requests.auth.HTTPBasicAuth('transmission', 'transmission')
 
     header = {'x-transmission-session-id': session_id}
 
@@ -54,7 +39,6 @@ async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]
 
     p_post = partial(session.post, json=s_stats_request, headers=header)
 
-    loop = asyncio.get_running_loop()
     response = await loop.run_in_executor(None, p_post, url)
 
     if response.status_code != 200:
