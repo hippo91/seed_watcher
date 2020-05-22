@@ -10,7 +10,7 @@ import time
 from typing import Mapping, Union, Optional
 
 from localization import BlinkingLocalization
-from transmission import get_download_speed
+from transmission import BlinkingDownloadSpeed
 from raspberry import ON_PI, initialize_gpio, cleanup
 
 
@@ -71,7 +71,9 @@ def main():
     loc_led_mng = BlinkingLocalization(conf['pin-localization-ok'], conf['pin-localization-ko']) 
     loc_status_task = loop.create_task(loc_led_mng.check_localisation_status(seedbox_user, seedbox_addr, ip_check_delay))
     loc_led_task = loop.create_task(loc_led_mng.blink_led())
-    down_speed_task = loop.create_task(get_download_speed(transmission_rpc_url, download_speed_delay))
+    down_speed_mng = BlinkingDownloadSpeed(conf['pin-download'])
+    down_speed_task = loop.create_task(down_speed_mng.get_download_speed(transmission_rpc_url, download_speed_delay))
+    down_speed_led_task = loop.create_task(down_speed_mng.blink_led())
 
     if ON_PI:
         initialize_gpio(pin_loc_ok)

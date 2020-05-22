@@ -4,6 +4,10 @@ import requests
 import sys
 import time
 from typing import Optional, Mapping, Any, AsyncGenerator
+try:
+    import RPi.GPIO as GPIO
+except:
+    pass
 
 
 async def get_transmission_session_id(url: str) -> Optional[str]:
@@ -77,17 +81,51 @@ async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]
         return None
 
 
-async def get_download_speed(transmission_rpc_url: str, delay: int) -> Optional[int]:
-    """
-    Yields the download speed every delay seconds
-    """
-    while True:
-        stats = await get_transmision_session_stats(transmission_rpc_url)
-        try:
-            res = stats['downloadSpeed']
-        except KeyError:
-            res = "Undef"
-            pass
-        print(f"Download speed is : {res}")
-        await asyncio.sleep(delay)
+class BlinkingDownloadSpeed:
+    def __init__(self, led: int):
+        self.__download_speed = 0
+        self.__led = led
 
+    async def get_download_speed(self, transmission_rpc_url: str, delay: int) -> Optional[int]:
+        """
+        Yields the download speed every delay seconds
+        """
+        while True:
+            stats = await get_transmision_session_stats(transmission_rpc_url)
+            if stats is None:
+                d_speed = 0.
+            try:
+                d_speed = stats['downloadSpeed']
+            except KeyError:
+                d_speed = 0.
+                pass
+            print(f"Download speed is : {d_speed}")
+            self.__download_speed = d_speed
+            await asyncio.sleep(delay)
+
+    async def blink_led(self):
+        """
+        The led blinking coroutine for one led.
+
+        Makes the led blinks with a frequency inversely proportionnal to the dowload speed
+
+        Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
+        """
+        ontime = 0.5
+        d_speed_max = int(0.75e+06)
+        
+        GPIO.setup(self.__led, GPIO.OUT)
+
+        try:
+            while True:
+                if self.__download_speed:
+                    offtime = d_speed_max / self.__download_speed * ontime
+                else: 
+                    offtime = 100 * ontime
+                GPIO.output(self.__led, GPIO.HIGH)
+                await asyncio.sleep(ontime)
+
+                GPIO.output(self.__led, GPIO.LOW)
+                await asyncio.sleep(offtime)
+        except asyncio.CancelledError:
+            GPIO.setup(self.__led, GPIO.IN)
