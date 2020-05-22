@@ -78,7 +78,7 @@ class BlinkingLocalization:
         """
         The led blinking coroutine for one led.
 
-        If the ip address is licit makes the led_ok blink
+        If the ip address is licit lights on led_ok 
         otherwise makes the led_ko blink
 
         Inspired by : https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
@@ -92,12 +92,11 @@ class BlinkingLocalization:
         try:
             while True:
                 if self._licit_ip:
+                    GPIO.output(self._led_ko, GPIO.LOW)
                     GPIO.output(self._led_ok, GPIO.HIGH)
                     await asyncio.sleep(ontime)
-
-                    GPIO.output(self._led_ok, GPIO.LOW)
-                    await asyncio.sleep(offtime)
                 else:
+                    GPIO.output(self._led_ok, GPIO.LOW)
                     GPIO.output(self._led_ko, GPIO.HIGH)
                     await asyncio.sleep(ontime)
 
