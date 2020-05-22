@@ -1,8 +1,11 @@
+"""
+This modules hold functions and classes that interacts with transmission deamon
+"""
 import asyncio
 from functools import partial
-import requests
 import sys
 from typing import Optional, Mapping, Any
+import requests
 try:
     import RPi.GPIO as GPIO
 except (ImportError, RuntimeError):
@@ -27,13 +30,13 @@ async def get_transmission_session_id(url: str) -> Optional[str]:
         return None
 
 
-async def get_transmission_header(url: str,
-                                  session_id: Optional[str]
+async def get_transmission_header(session_id: Optional[str]
                                   ) -> Optional[Mapping[str, str]]:
     """
     Return the transmission current session header
 
-    :param url: the transmission rpc url
+    :param session_id: the id of the session
+    :return: the session id in a dict
     """
     if not session_id:
         print("No session id found!", file=sys.stderr)
@@ -41,8 +44,7 @@ async def get_transmission_header(url: str,
     return {'x-transmission-session-id': session_id}
 
 
-async def get_transmision_session_stats(url: str
-                                        ) -> Optional[Mapping[str, Any]]:
+async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
     """
     Return the transmission current session stats
 
@@ -54,7 +56,7 @@ async def get_transmision_session_stats(url: str
     }
 
     session_id = await get_transmission_session_id(url)
-    header = await get_transmission_header(url, session_id)
+    header = await get_transmission_header(session_id)
 
     if not header:
         print("No header found!", file=sys.stderr)
@@ -65,7 +67,7 @@ async def get_transmision_session_stats(url: str
     session = requests.Session()
     session.auth = requests.auth.HTTPBasicAuth('transmission', 'transmission')
     session_id = await get_transmission_session_id(url)
-    headers = await get_transmission_header(url, session_id)
+    headers = await get_transmission_header(session_id)
 
     p_post = partial(session.post, json=s_stats_request, headers=headers)
 
@@ -84,18 +86,26 @@ async def get_transmision_session_stats(url: str
 
 
 class BlinkingDownloadSpeed:
-    def __init__(self, led: int):
+    """
+    This class retrieves the download speed and makes the led blink accordingly
+    """
+    def __init__(self, led: int, transmission_rpc_url: str, delay: int):
+        """
+        :param led: the pin number corresponding to the led that should blink
+        :param transmission_rpc_url: url address of the transmission rpc
+        :param delay: period between two measurement of the download speed
+        """
         self.__download_speed = 0
         self.__led = led
+        self._transmission_rpc_url = transmission_rpc_url
+        self._delay = delay
 
-    async def get_download_speed(self,
-                                 transmission_rpc_url: str,
-                                 delay: int) -> Optional[int]:
+    async def get_download_speed(self) -> Optional[int]:
         """
         Yields the download speed every delay seconds
         """
         while True:
-            stats = await get_transmision_session_stats(transmission_rpc_url)
+            stats = await get_transmision_session_stats(self._transmission_rpc_url)
             if stats is None:
                 d_speed = 0
             else:
@@ -103,10 +113,9 @@ class BlinkingDownloadSpeed:
                     d_speed = stats['downloadSpeed']
                 except KeyError:
                     d_speed = 0
-                    pass
-            print(f"Download speed is : {d_speed}")
+            print(f"Download speed is : {d_speed / 1024} kB/s")
             self.__download_speed = d_speed
-            await asyncio.sleep(delay)
+            await asyncio.sleep(self._delay)
 
     async def blink_led(self):
         """

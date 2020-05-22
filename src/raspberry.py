@@ -1,3 +1,6 @@
+"""
+This module holds function that manage the raspberry pi
+"""
 try:
     import RPi.GPIO as GPIO
     ON_PI = True
@@ -22,4 +25,7 @@ def initialize_gpio(led: int) -> None:
 
 
 def cleanup():
+    """
+    Cleans the GPIO setup
+    """
     GPIO.cleanup()

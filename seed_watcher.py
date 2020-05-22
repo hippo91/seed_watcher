@@ -28,14 +28,14 @@ def read_config() -> Optional[ConfigurationMapping]:
     Read the configuration file and return a dict
     """
     try:
-        with open("config.json", 'r') as fi:
-            data = json.load(fi)
+        with open("config.json", 'r') as conf_file:
+            data = json.load(conf_file)
     except FileNotFoundError:
         return None
     return data
 
 
-class ConfigurationReader:
+class ConfigurationReader:  # pylint:disable=too-few-public-methods
     """
     This class ensures that the configuration has been read successfully
     """
@@ -61,8 +61,7 @@ class ConfigurationReader:
 
 
 @contextmanager
-def configuration_reader(configuration: ConfigurationMapping) -> Generator[
-        ConfigurationReader, None, None]:
+def configuration_reader(configuration: ConfigurationMapping) -> Generator[ConfigurationReader, None, None]:  # pylint: disable=line-too-long
     """
     This context manager give access to an instance of ConfigurationReader
     class that checks the configuration has been successfully read.
@@ -98,14 +97,14 @@ def main():
         pin_download = reader.get_safe('pin-download')
 
     loop = asyncio.get_event_loop()
-    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko)
-    loc_status_task = loop.create_task(loc_led_mng.check_localisation_status(
-        seedbox_user, seedbox_addr, ip_check_delay))
-    loc_led_task = loop.create_task(loc_led_mng.blink_led())
-    down_speed_mng = BlinkingDownloadSpeed(pin_download)
-    down_speed_task = loop.create_task(down_speed_mng.get_download_speed(
-        transmission_rpc_url, download_speed_delay))
-    down_speed_led_task = loop.create_task(down_speed_mng.blink_led())
+    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, seedbox_user,
+                                       seedbox_addr, ip_check_delay)
+    down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay)
+
+    tasks = [loop.create_task(loc_led_mng.check_localisation_status()),
+             loop.create_task(loc_led_mng.blink_led()),
+             loop.create_task(down_speed_mng.get_download_speed()),
+             loop.create_task(down_speed_mng.blink_led())]
 
     if ON_PI:
         initialize_gpio(pin_loc_ok)
@@ -116,10 +115,7 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        aggregate = asyncio.gather(loc_status_task,
-                                   down_speed_task,
-                                   loc_led_task,
-                                   down_speed_led_task)
+        aggregate = asyncio.gather(tasks)
         aggregate.cancel()
         loop.run_until_complete(aggregate)
 
