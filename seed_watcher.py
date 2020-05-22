@@ -10,9 +10,9 @@ import signal
 import sys
 from typing import Mapping, Union, Optional, Generator
 
-from seed_watcher.localization import BlinkingLocalization
-from seed_watcher.transmission import BlinkingDownloadSpeed
-from seed_watcher.raspberry import ON_PI, initialize_gpio, cleanup
+from src.localization import BlinkingLocalization
+from src.transmission import BlinkingDownloadSpeed
+from src.raspberry import ON_PI, initialize_gpio, cleanup
 
 
 ConfigurationMapping = Mapping[str, Union[int, float]]
