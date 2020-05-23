@@ -95,11 +95,15 @@ def main():
         pin_loc_ok = reader.get_safe('pin-localization-ok')
         pin_loc_ko = reader.get_safe('pin-localization-ko')
         pin_download = reader.get_safe('pin-download')
+        min_freq = reader.get_safe('minimum-frequency')
+        max_freq = reader.get_safe('maximum-frequency')
+        max_download_speed = reader.get_safe('maximum-download-speed')
 
     loop = asyncio.get_event_loop()
     loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, seedbox_user,
                                        seedbox_addr, ip_check_delay)
-    down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay)
+    down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay,
+                                           min_freq, max_freq, max_download_speed)
 
     tasks = [loop.create_task(loc_led_mng.check_localisation_status()),
              loop.create_task(loc_led_mng.blink_led()),

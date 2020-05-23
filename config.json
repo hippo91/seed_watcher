@@ -6,5 +6,8 @@
     "download-speed-delay": 2,
     "pin-localization-ok": 22,
     "pin-localization-ko": 8,
-    "pin-download": 7
+    "pin-download": 7,
+    "minimum-frequency": 0.5,
+    "maximum-frequency": 24,
+    "maximum-download-speed": 750000
 }
