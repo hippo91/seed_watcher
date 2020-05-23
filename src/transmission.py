@@ -42,8 +42,8 @@ async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]
 
         res = await response.json()
         try:
-            res = res['arguments']
-            return res
+            args: Mapping[str, Any] = res['arguments']
+            return args
         except KeyError:
             print("Unable to get arguments!", file=sys.stderr)
             return None

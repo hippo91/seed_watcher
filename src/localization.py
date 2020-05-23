@@ -34,7 +34,8 @@ async def get_ip_localisation(seed_box_user: str,
         res_d = json.loads(stdout)
         if res_d['status'] != 'success':
             return None
-        return res_d['data']['country_name']
+        country_name: str = res_d['data']['country_name']
+        return country_name
 
     print("Unable to get ip localization", file=sys.stderr)
     print(f"Error is {stderr.decode()}", file=sys.stderr)

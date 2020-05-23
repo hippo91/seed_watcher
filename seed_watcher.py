@@ -23,7 +23,7 @@ def read_config() -> Optional[ConfigurationMapping]:
     """
     try:
         with open("config.json", 'r') as conf_file:
-            data = json.load(conf_file)
+            data: ConfigurationMapping = json.load(conf_file)
     except FileNotFoundError:
         return None
     return data
