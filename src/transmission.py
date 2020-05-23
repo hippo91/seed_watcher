@@ -5,7 +5,7 @@ import asyncio
 from functools import partial
 import sys
 from typing import Optional, Mapping, Any
-import requests
+import aiohttp
 try:
     import RPi.GPIO as GPIO
 except (ImportError, RuntimeError):
@@ -18,39 +18,35 @@ async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]
 
     :param url: the transmission rpc url
     """
-    loop = asyncio.get_running_loop()
+    auth = aiohttp.BasicAuth('transmission', 'transmission')
+    async with aiohttp.ClientSession(auth=auth) as session:
+        response = await session.post(url)
+        try:
+            session_id = response.headers['X-Transmission-Session-Id']
+        except (AttributeError, KeyError):
+            print("No session id found!", file=sys.stderr)
+            return None
 
-    session = requests.Session()
-    session.auth = requests.auth.HTTPBasicAuth('transmission', 'transmission')
+        header = {'x-transmission-session-id': session_id}
 
-    response = await loop.run_in_executor(None, session.post, url)
-    try:
-        session_id = response.headers['X-Transmission-Session-Id']
-    except (AttributeError, KeyError):
-        print("No session id found!", file=sys.stderr)
-        return None
+        s_stats_request = {
+            "method": "session-stats",
+            "tag": 42
+        }
 
-    header = {'x-transmission-session-id': session_id}
+        response = await session.post(url, json=s_stats_request, headers=header)
 
-    s_stats_request = {
-        "method": "session-stats",
-        "tag": 39693
-    }
+        if response.status != 200:
+            print("Response on error!", file=sys.stderr)
+            return None
 
-    p_post = partial(session.post, json=s_stats_request, headers=header)
-
-    response = await loop.run_in_executor(None, p_post, url)
-
-    if response.status_code != 200:
-        print("Response on error!", file=sys.stderr)
-        return None
-
-    try:
-        res = response.json()['arguments']
-        return res
-    except (AttributeError, KeyError):
-        print("Unable to get arguments!", file=sys.stderr)
-        return None
+        res = await response.json()
+        try:
+            res = res['arguments']
+            return res
+        except KeyError:
+            print("Unable to get arguments!", file=sys.stderr)
+            return None
 
 
 class BlinkingDownloadSpeed:
