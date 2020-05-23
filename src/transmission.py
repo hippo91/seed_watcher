@@ -79,21 +79,18 @@ class BlinkingDownloadSpeed:
         """
         Yields the download speed every delay seconds
         """
-        try:
-            while True:
-                stats = await get_transmision_session_stats(self._transmission_rpc_url)
-                if stats is None:
+        while True:
+            stats = await get_transmision_session_stats(self._transmission_rpc_url)
+            if stats is None:
+                d_speed = 0
+            else:
+                try:
+                    d_speed = stats['downloadSpeed']
+                except KeyError:
                     d_speed = 0
-                else:
-                    try:
-                        d_speed = stats['downloadSpeed']
-                    except KeyError:
-                        d_speed = 0
-                print(f"Download speed is : {d_speed / 1024} kB/s")
-                self._download_speed = d_speed
-                await asyncio.sleep(self._delay)
-        except asyncio.CancelledError:
-            print(f"{self.__class__.__name__}.get_download_speed cancelled!")
+            print(f"Download speed is : {d_speed / 1024} kB/s")
+            self._download_speed = d_speed
+            await asyncio.sleep(self._delay)
 
     async def blink_led(self):
         """
@@ -122,3 +119,4 @@ class BlinkingDownloadSpeed:
         except asyncio.CancelledError:
             print(f"{self.__class__.__name__}.blink_led cancelled!")
             GPIO.setup(self._led, GPIO.IN)
+            raise
