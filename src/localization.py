@@ -7,7 +7,7 @@ import sys
 from typing import Optional
 try:
     import RPi.GPIO as GPIO
-except ImportError:
+except (ImportError, RuntimeError):
     pass
 
 
