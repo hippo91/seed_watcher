@@ -6,7 +6,6 @@ import asyncio
 from contextlib import contextmanager
 import json
 import os
-import signal
 import sys
 from typing import Mapping, Union, Optional, Generator
 
