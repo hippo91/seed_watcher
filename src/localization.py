@@ -85,10 +85,13 @@ class BlinkingLocalization:
 
         :return: True if the public ip country name is licit (false otherwise)
         """
-        while True:
-            self._licit_ip = await check_licit_ip(self._seed_box_user, self._seed_box_addr)
-            print(f"Ip address is licit : {self._licit_ip}")
-            await asyncio.sleep(self._delay)
+        try:
+            while True:
+                self._licit_ip = await check_licit_ip(self._seed_box_user, self._seed_box_addr)
+                print(f"Ip address is licit : {self._licit_ip}")
+                await asyncio.sleep(self._delay)
+        except asyncio.CancelledError:
+            print(f"{self.__class__.__name__}.check_localisation_status cancelled!")
 
     async def blink_led(self):
         """
@@ -119,5 +122,6 @@ class BlinkingLocalization:
                     GPIO.output(self._led_ko, GPIO.LOW)
                     await asyncio.sleep(offtime)
         except asyncio.CancelledError:
+            print(f"{self.__class__.__name__}.blink_led cancelled!")
             GPIO.setup(self._led_ok, GPIO.IN)
             GPIO.setup(self._led_ko, GPIO.IN)
