@@ -117,6 +117,5 @@ class BlinkingDownloadSpeed:
                 GPIO.output(self._led, GPIO.LOW)
                 await asyncio.sleep(offtime)
         except asyncio.CancelledError:
-            print(f"{self.__class__.__name__}.blink_led cancelled!")
             GPIO.setup(self._led, GPIO.IN)
             raise

@@ -119,7 +119,6 @@ class BlinkingLocalization:
                     GPIO.output(self._led_ko, GPIO.LOW)
                     await asyncio.sleep(offtime)
         except asyncio.CancelledError:
-            print(f"{self.__class__.__name__}.blink_led cancelled!")
             GPIO.setup(self._led_ok, GPIO.IN)
             GPIO.setup(self._led_ko, GPIO.IN)
             raise
