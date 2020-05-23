@@ -57,16 +57,23 @@ class BlinkingDownloadSpeed:
     """
     This class retrieves the download speed and makes the led blink accordingly
     """
-    def __init__(self, led: int, transmission_rpc_url: str, delay: int):
+    def __init__(self, led: int, transmission_rpc_url: str, delay: int,  # pylint:disable=too-many-arguments
+                 min_frequency: float, max_frequency: float, max_download_speed: int):
         """
         :param led: the pin number corresponding to the led that should blink
         :param transmission_rpc_url: url address of the transmission rpc
-        :param delay: period between two measurement of the download speed
+        :param delay: period between two measurement of the download speed [s]
+        :param min_frequency: minimum blinking frequency [Hz] (download speed is nill)
+        :param max_frequency: maximum blinking frequency [Hz] (download speed is max_download_speed)
+        :param max_download_speed: maximum downloading speed [B/s]
         """
         self._download_speed = 0
         self._led = led
         self._transmission_rpc_url = transmission_rpc_url
         self._delay = delay
+        self._min_freq = min_frequency
+        self._max_freq = max_frequency
+        self._max_download_speed = max_download_speed
 
     async def get_download_speed(self) -> Optional[int]:
         """
@@ -82,7 +89,7 @@ class BlinkingDownloadSpeed:
                 except KeyError:
                     d_speed = 0
             print(f"Download speed is : {d_speed / 1024} kB/s")
-            self.__download_speed = d_speed
+            self._download_speed = d_speed
             await asyncio.sleep(self._delay)
 
     async def blink_led(self):
@@ -95,15 +102,13 @@ class BlinkingDownloadSpeed:
         Inspired by :
         https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
         """
-        freq_min = 0.5  # Hz
-        freq_max = 12  # Hz
-        d_speed_max = int(0.75e+06)
-
-        GPIO.setup(self.__led, GPIO.OUT)
+        GPIO.setup(self._led, GPIO.OUT)
 
         try:
             while True:
+                freq = self._min_freq
                 if self._download_speed:
+                    freq += ((self._max_freq - self._min_freq) / self._max_download_speed *
                              self._download_speed)
                 ontime = offtime = 1. / freq
                 GPIO.output(self._led, GPIO.HIGH)
