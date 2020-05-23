@@ -18,11 +18,6 @@ from src.raspberry import ON_PI, initialize_gpio, cleanup
 ConfigurationMapping = Mapping[str, Union[int, float]]
 
 
-def do_sigterm():
-    """SIGTERM triggers the KeyboardInterrupt handler."""
-    raise KeyboardInterrupt
-
-
 def read_config() -> Optional[ConfigurationMapping]:
     """
     Read the configuration file and return a dict
@@ -75,7 +70,7 @@ def configuration_reader(configuration: ConfigurationMapping) -> Generator[Confi
         sys.exit(2)
 
 
-def main():
+async def main():
     """
     Main function
     """
@@ -99,36 +94,29 @@ def main():
         max_freq = reader.get_safe('maximum-frequency')
         max_download_speed = reader.get_safe('maximum-download-speed')
 
-    loop = asyncio.get_event_loop()
     loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, seedbox_user,
                                        seedbox_addr, ip_check_delay)
     down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay,
                                            min_freq, max_freq, max_download_speed)
 
-    tasks = [loop.create_task(loc_led_mng.check_localisation_status()),
-             loop.create_task(down_speed_mng.get_download_speed())]
+    tasks = [asyncio.create_task(loc_led_mng.check_localisation_status()),
+             asyncio.create_task(down_speed_mng.get_download_speed())]
 
     if ON_PI:
-        tasks.extend([loop.create_task(loc_led_mng.blink_led()),
-                      loop.create_task(down_speed_mng.blink_led())])
+        tasks.extend([asyncio.create_task(loc_led_mng.blink_led()),
+                      asyncio.create_task(down_speed_mng.blink_led())])
         initialize_gpio(pin_loc_ok)
         initialize_gpio(pin_loc_ko)
 
-    loop.add_signal_handler(signal.SIGTERM, do_sigterm)
 
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        print("Caught keyboard interrupt. Canceling tasks...")
-        aggregate = asyncio.gather(*tasks)
-        aggregate.cancel()
-        loop.run_until_complete(aggregate)
-    finally:
-        loop.close()
-
-    if ON_PI:
-        cleanup()
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Keyboard interruption!")
+        if ON_PI:
+            cleanup()
+        sys.exit(0)
