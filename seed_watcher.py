@@ -106,11 +106,11 @@ def main():
                                            min_freq, max_freq, max_download_speed)
 
     tasks = [loop.create_task(loc_led_mng.check_localisation_status()),
-             loop.create_task(loc_led_mng.blink_led()),
-             loop.create_task(down_speed_mng.get_download_speed()),
-             loop.create_task(down_speed_mng.blink_led())]
+             loop.create_task(down_speed_mng.get_download_speed())]
 
     if ON_PI:
+        tasks.extend([loop.create_task(loc_led_mng.blink_led()),
+                      loop.create_task(down_speed_mng.blink_led())])
         initialize_gpio(pin_loc_ok)
         initialize_gpio(pin_loc_ko)
 
