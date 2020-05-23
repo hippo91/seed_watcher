@@ -63,8 +63,8 @@ class BlinkingDownloadSpeed:
         :param transmission_rpc_url: url address of the transmission rpc
         :param delay: period between two measurement of the download speed
         """
-        self.__download_speed = 0
-        self.__led = led
+        self._download_speed = 0
+        self._led = led
         self._transmission_rpc_url = transmission_rpc_url
         self._delay = delay
 
@@ -103,15 +103,13 @@ class BlinkingDownloadSpeed:
 
         try:
             while True:
-                freq = freq_min
-                if self.__download_speed:
-                    freq += ((freq_max - freq_min) / d_speed_max *
-                             self.__download_speed)
+                if self._download_speed:
+                             self._download_speed)
                 ontime = offtime = 1. / freq
-                GPIO.output(self.__led, GPIO.HIGH)
+                GPIO.output(self._led, GPIO.HIGH)
                 await asyncio.sleep(ontime)
 
-                GPIO.output(self.__led, GPIO.LOW)
+                GPIO.output(self._led, GPIO.LOW)
                 await asyncio.sleep(offtime)
         except asyncio.CancelledError:
-            GPIO.setup(self.__led, GPIO.IN)
+            GPIO.setup(self._led, GPIO.IN)
