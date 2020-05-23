@@ -119,11 +119,12 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
+        print("Caught keyboard interrupt. Canceling tasks...")
         aggregate = asyncio.gather(*tasks)
         aggregate.cancel()
         loop.run_until_complete(aggregate)
-
-    loop.close()
+    finally:
+        loop.close()
 
     if ON_PI:
         cleanup()
