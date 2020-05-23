@@ -77,6 +77,7 @@ class BlinkingLocalization:
         self._seed_box_user = seed_box_user
         self._seed_box_addr = seed_box_addr
         self._delay = delay
+        self._freq = 2.
 
     async def check_localisation_status(self) -> bool:
         """
@@ -99,8 +100,7 @@ class BlinkingLocalization:
         Inspired by :
         https://github.com/davesteele/pihut-xmas-asyncio/blob/master/
         """
-        ontime = 0.5
-        offtime = 0.5
+        ontime = offtime = 1. / self._freq
 
         GPIO.setup(self._led_ok, GPIO.OUT)
         GPIO.setup(self._led_ko, GPIO.OUT)
