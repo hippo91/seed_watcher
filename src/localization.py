@@ -50,6 +50,7 @@ async def check_licit_ip(seed_box_user: str,
 
     :param seed_box_user: user name on the seed box
     :param seed_box_addr: address of the seed box on the internal network
+    :param forbidden_countries: list of countries the seed box should not be localized in
     :return: True if the public ip country name is licit (false otherwise)
     """
     loc = await get_ip_localisation(seed_box_user, seed_box_addr)
