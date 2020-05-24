@@ -8,14 +8,15 @@ import json
 from functools import partial
 import os
 import sys
-from typing import Mapping, Union, Optional, Generator
+from typing import Mapping, Union, Optional, Generator, List
 
 from src.localization import BlinkingLocalization, check_licit_ip
 from src.transmission import BlinkingDownloadSpeed, get_transmision_session_stats
 from src.raspberry import ON_PI, initialize_gpio, cleanup
 
 
-ConfigurationMapping = Mapping[str, Union[int, float]]
+ConfigurationValues = Union[int, float, List[str]]
+ConfigurationMapping = Mapping[str, ConfigurationValues]
 
 
 def read_config() -> Optional[ConfigurationMapping]:
@@ -39,7 +40,7 @@ class ConfigurationReader:  # pylint:disable=too-few-public-methods
         self.is_ok = True
         self.config = configuration
 
-    def get_safe(self, parameter: str) -> Optional[Union[int, float]]:
+    def get_safe(self, parameter: str) -> Optional[ConfigurationValues]:
         """
         Check if the parameter is in the configuration.
         If it is in then return the value. Else adds a message to the buffer
@@ -83,9 +84,12 @@ async def main():
 
     with configuration_reader(conf) as reader:
         transmission_rpc_url = reader.get_safe('transmission-rpc-url')
+        transmission_username = reader.get_safe('transmission-username')
+        transmission_passwd = reader.get_safe('transmission-password')
         seedbox_addr = reader.get_safe('seedbox-local-addr')
         seedbox_user = reader.get_safe('seedbox-user')
         ip_check_delay = reader.get_safe('ip-check-delay')
+        forbidden_countries = reader.get_safe('forbidden-countries')
         download_speed_delay = reader.get_safe('download-speed-delay')
         pin_loc_ok = reader.get_safe('pin-localization-ok')
         pin_loc_ko = reader.get_safe('pin-localization-ko')
@@ -98,9 +102,11 @@ async def main():
     down_speed_mng = BlinkingDownloadSpeed(pin_download, download_speed_delay,
                                            min_freq, max_freq, max_download_speed)
 
-    localization_checker = partial(check_licit_ip, seedbox_user, seedbox_addr, ('France',))
+    localization_checker = partial(check_licit_ip, seedbox_user, seedbox_addr, forbidden_countries)
     transmission_stats_getter = partial(get_transmision_session_stats,
-                                        transmission_rpc_url, 'transmission', 'transmission')
+                                        transmission_rpc_url,
+                                        transmission_username,
+                                        transmission_passwd)
 
     tasks = [asyncio.create_task(loc_led_mng.check_localisation_status(localization_checker)),
              asyncio.create_task(down_speed_mng.get_download_speed(transmission_stats_getter))]
