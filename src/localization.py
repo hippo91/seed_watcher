@@ -4,7 +4,7 @@ This module holds functions that deal with ip localization of the seed box
 import asyncio
 import json
 import sys
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Callable, Awaitable
 try:
     import RPi.GPIO as GPIO
 except (ImportError, RuntimeError):
@@ -79,7 +79,7 @@ class BlinkingLocalization:
         self._delay = delay
         self._freq = 2.
 
-    async def check_localisation_status(self, localization_checker) -> bool:
+    async def check_localisation_status(self, localization_checker: Callable[[], Awaitable[bool]]) -> bool:
         """
         Check the localisation status every delay seconds
 
