@@ -80,7 +80,7 @@ class BlinkingLocalization:
         self._delay = delay
         self._freq = 2.
 
-    async def check_localisation_status(self, localization_checker: Callable[[], Awaitable[bool]]) -> bool:
+    async def check_localisation_status(self, localization_checker: Callable[[], Awaitable[bool]]) -> bool:  # pylint:disable=line-too-long
         """
         Check the localisation status every delay seconds
 

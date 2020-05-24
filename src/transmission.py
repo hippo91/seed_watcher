@@ -2,7 +2,6 @@
 This modules hold functions and classes that interacts with transmission deamon
 """
 import asyncio
-from functools import partial
 import sys
 from typing import Optional, Mapping, Any, Callable, Awaitable
 import aiohttp
@@ -15,7 +14,7 @@ except (ImportError, RuntimeError):
 SessionStats = Mapping[str, Any]
 
 
-async def get_transmision_session_stats(url: str, username: str, password: str) -> Optional[SessionStats]:
+async def get_transmision_session_stats(url: str, username: str, password: str) -> Optional[SessionStats]:  # pylint:disable=line-too-long
     """
     Return the transmission current session stats
 
@@ -74,7 +73,7 @@ class BlinkingDownloadSpeed:
         self._max_freq = max_frequency
         self._max_download_speed = max_download_speed
 
-    async def get_download_speed(self, transmission_stats_getter: Callable[[], Awaitable[Optional[SessionStats]]]) -> Optional[int]:
+    async def get_download_speed(self, transmission_stats_getter: Callable[[], Awaitable[Optional[SessionStats]]]) -> Optional[int]:  # pylint:disable=line-too-long
         """
         Yields the download speed every delay seconds
         """
