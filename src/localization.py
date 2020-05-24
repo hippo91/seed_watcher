@@ -4,7 +4,7 @@ This module holds functions that deal with ip localization of the seed box
 import asyncio
 import json
 import sys
-from typing import Optional
+from typing import Optional, Iterable
 try:
     import RPi.GPIO as GPIO
 except (ImportError, RuntimeError):
@@ -43,7 +43,8 @@ async def get_ip_localisation(seed_box_user: str,
 
 
 async def check_licit_ip(seed_box_user: str,
-                         seed_box_addr: str) -> bool:
+                         seed_box_addr: str,
+                         forbidden_countries: Iterable[str]) -> bool:
     """
     Return True if the public ip country name is licit
 
@@ -52,8 +53,10 @@ async def check_licit_ip(seed_box_user: str,
     :return: True if the public ip country name is licit (false otherwise)
     """
     loc = await get_ip_localisation(seed_box_user, seed_box_addr)
+    if not loc:
+        return False
     print(f'Seed box localization is : {loc.lower()}')
-    if not loc or loc.lower() in ('france',):
+    if loc.lower() in [country.lower() for country in forbidden_countries]:
         return False
     return True
 
@@ -88,7 +91,7 @@ class BlinkingLocalization:
         :return: True if the public ip country name is licit (false otherwise)
         """
         while True:
-            self._licit_ip = await check_licit_ip(self._seed_box_user, self._seed_box_addr)
+            self._licit_ip = await check_licit_ip(self._seed_box_user, self._seed_box_addr, ('France',))
             print(f"Ip address is licit : {self._licit_ip}")
             await asyncio.sleep(self._delay)
 
