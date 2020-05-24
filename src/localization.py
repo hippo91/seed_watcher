@@ -52,7 +52,7 @@ async def check_licit_ip(seed_box_user: str,
     :return: True if the public ip country name is licit (false otherwise)
     """
     loc = await get_ip_localisation(seed_box_user, seed_box_addr)
-    if not loc or loc not in ('Germany', 'Netherlands'):
+    if not loc or loc.lower() in ('france',):
         return False
     return True
 
