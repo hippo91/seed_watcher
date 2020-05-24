@@ -11,7 +11,7 @@ import sys
 from typing import Mapping, Union, Optional, Generator
 
 from src.localization import BlinkingLocalization, check_licit_ip
-from src.transmission import BlinkingDownloadSpeed
+from src.transmission import BlinkingDownloadSpeed, get_transmision_session_stats
 from src.raspberry import ON_PI, initialize_gpio, cleanup
 
 
@@ -95,13 +95,14 @@ async def main():
         max_download_speed = reader.get_safe('maximum-download-speed')
 
     loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, ip_check_delay)
-    down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay,
+    down_speed_mng = BlinkingDownloadSpeed(pin_download, download_speed_delay,
                                            min_freq, max_freq, max_download_speed)
 
     localization_checker = partial(check_licit_ip, seedbox_user, seedbox_addr, ('France',))
+    transmission_stats_getter = partial(get_transmision_session_stats, transmission_rpc_url, 'transmission', 'transmission')
 
     tasks = [asyncio.create_task(loc_led_mng.check_localisation_status(localization_checker)),
-             asyncio.create_task(down_speed_mng.get_download_speed())]
+             asyncio.create_task(down_speed_mng.get_download_speed(transmission_stats_getter))]
 
     if ON_PI:
         tasks.extend([asyncio.create_task(loc_led_mng.blink_led()),

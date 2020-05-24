@@ -4,7 +4,7 @@ This modules hold functions and classes that interacts with transmission deamon
 import asyncio
 from functools import partial
 import sys
-from typing import Optional, Mapping, Any
+from typing import Optional, Mapping, Any, Callable, Awaitable
 import aiohttp
 try:
     import RPi.GPIO as GPIO
@@ -12,7 +12,10 @@ except (ImportError, RuntimeError):
     pass
 
 
-async def get_transmision_session_stats(url: str, username: str, password: str) -> Optional[Mapping[str, Any]]:
+SessionStats = Mapping[str, Any]
+
+
+async def get_transmision_session_stats(url: str, username: str, password: str) -> Optional[SessionStats]:
     """
     Return the transmission current session stats
 
@@ -55,11 +58,10 @@ class BlinkingDownloadSpeed:
     """
     This class retrieves the download speed and makes the led blink accordingly
     """
-    def __init__(self, led: int, transmission_rpc_url: str, delay: int,  # pylint:disable=too-many-arguments
+    def __init__(self, led: int, delay: int,  # pylint:disable=too-many-arguments
                  min_frequency: float, max_frequency: float, max_download_speed: int):
         """
         :param led: the pin number corresponding to the led that should blink
-        :param transmission_rpc_url: url address of the transmission rpc
         :param delay: period between two measurement of the download speed [s]
         :param min_frequency: minimum blinking frequency [Hz] (download speed is nill)
         :param max_frequency: maximum blinking frequency [Hz] (download speed is max_download_speed)
@@ -67,18 +69,17 @@ class BlinkingDownloadSpeed:
         """
         self._download_speed = 0
         self._led = led
-        self._transmission_rpc_url = transmission_rpc_url
         self._delay = delay
         self._min_freq = min_frequency
         self._max_freq = max_frequency
         self._max_download_speed = max_download_speed
 
-    async def get_download_speed(self) -> Optional[int]:
+    async def get_download_speed(self, transmission_stats_getter: Callable[[], Awaitable[Optional[SessionStats]]]) -> Optional[int]:
         """
         Yields the download speed every delay seconds
         """
         while True:
-            stats = await get_transmision_session_stats(self._transmission_rpc_url, 'transmission', 'transmission')
+            stats = await transmission_stats_getter()
             if stats is None:
                 d_speed = 0
             else:
