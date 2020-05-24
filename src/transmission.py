@@ -12,13 +12,15 @@ except (ImportError, RuntimeError):
     pass
 
 
-async def get_transmision_session_stats(url: str) -> Optional[Mapping[str, Any]]:
+async def get_transmision_session_stats(url: str, username: str, password: str) -> Optional[Mapping[str, Any]]:
     """
     Return the transmission current session stats
 
     :param url: the transmission rpc url
+    :param username: username to connect to transmission rpc
+    :param password: password to connect to transmission rpc
     """
-    auth = aiohttp.BasicAuth('transmission', 'transmission')
+    auth = aiohttp.BasicAuth(username, password)
     async with aiohttp.ClientSession(auth=auth) as session:
         response = await session.post(url)
         try:
@@ -76,7 +78,7 @@ class BlinkingDownloadSpeed:
         Yields the download speed every delay seconds
         """
         while True:
-            stats = await get_transmision_session_stats(self._transmission_rpc_url)
+            stats = await get_transmision_session_stats(self._transmission_rpc_url, 'transmission', 'transmission')
             if stats is None:
                 d_speed = 0
             else:
