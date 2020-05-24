@@ -65,33 +65,28 @@ class BlinkingLocalization:
     """
     This class checks the localization and make leds blink accordingly
     """
-    def __init__(self, led_ok: int, led_ko: int,  # pylint: disable=too-many-arguments
-                 seed_box_user: str, seed_box_addr: str, delay: int):
+    def __init__(self, led_ok: int, led_ko: int, delay: int):
         """
         :param led_ok: pin number corresponding to the led that will blink
                        if localization is ok
         :param led_ko: pin number corresponding to the led that will blink
                        if localization is not ok
-        :param seed_box_user: user name on the seed box
-        :param seed_box_addr: address of the seed box on the internal network
         :param delay: refreshing delay
         """
         self._licit_ip = False
         self._led_ok = led_ok
         self._led_ko = led_ko
-        self._seed_box_user = seed_box_user
-        self._seed_box_addr = seed_box_addr
         self._delay = delay
         self._freq = 2.
 
-    async def check_localisation_status(self) -> bool:
+    async def check_localisation_status(self, localization_checker) -> bool:
         """
         Check the localisation status every delay seconds
 
         :return: True if the public ip country name is licit (false otherwise)
         """
         while True:
-            self._licit_ip = await check_licit_ip(self._seed_box_user, self._seed_box_addr, ('France',))
+            self._licit_ip = await localization_checker()
             print(f"Ip address is licit : {self._licit_ip}")
             await asyncio.sleep(self._delay)
 

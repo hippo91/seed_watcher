@@ -5,11 +5,12 @@ This program retrieves some informations on a seed box
 import asyncio
 from contextlib import contextmanager
 import json
+from functools import partial
 import os
 import sys
 from typing import Mapping, Union, Optional, Generator
 
-from src.localization import BlinkingLocalization
+from src.localization import BlinkingLocalization, check_licit_ip
 from src.transmission import BlinkingDownloadSpeed
 from src.raspberry import ON_PI, initialize_gpio, cleanup
 
@@ -93,12 +94,13 @@ async def main():
         max_freq = reader.get_safe('maximum-frequency')
         max_download_speed = reader.get_safe('maximum-download-speed')
 
-    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, seedbox_user,
-                                       seedbox_addr, ip_check_delay)
+    loc_led_mng = BlinkingLocalization(pin_loc_ok, pin_loc_ko, ip_check_delay)
     down_speed_mng = BlinkingDownloadSpeed(pin_download, transmission_rpc_url, download_speed_delay,
                                            min_freq, max_freq, max_download_speed)
 
-    tasks = [asyncio.create_task(loc_led_mng.check_localisation_status()),
+    localization_checker = partial(check_licit_ip, seedbox_user, seedbox_addr, ('France',))
+
+    tasks = [asyncio.create_task(loc_led_mng.check_localisation_status(localization_checker)),
              asyncio.create_task(down_speed_mng.get_download_speed())]
 
     if ON_PI:
