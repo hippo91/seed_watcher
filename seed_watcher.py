@@ -9,6 +9,7 @@ from functools import partial
 import os
 import sys
 from typing import Mapping, Union, Optional, Generator, List
+from aiohttp.client_exceptions import ClientConnectorError
 
 from src.localization import BlinkingLocalization, check_licit_ip
 from src.transmission import BlinkingDownloadSpeed, get_transmision_session_stats
@@ -126,6 +127,9 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Keyboard interruption!")
+    except ClientConnectorError as err:
+        print(err)
+    finally:
         if ON_PI:
             cleanup()
         sys.exit(0)
